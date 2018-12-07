@@ -6,6 +6,7 @@ exit 1
 #endif
 /*
  * Copyright (C) 2011 Ludwig Nussel <ludwig.nussel@ff-egersdorf-wachendorf.de>
+ * Copyright (C) 2018 CyberNinjas <info@cyberninjas.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,8 +59,6 @@ exit 1
 #ifndef _
 #define _(x) (x)
 #endif
-
-char guestuser[128] = "guest";
 
 static void freeresp(struct pam_response* resp, unsigned num)
 {
@@ -136,7 +135,7 @@ static int getrandom_ascii(char* o)
 static int gensalt(char salt[])
 {
 	if (getrandom_ascii(&salt[0]) == -1
-	|| getrandom_ascii(&salt[1]) == -1)
+			|| getrandom_ascii(&salt[1]) == -1)
 		return -1;
 	salt[2] = '\0';
 	return 0;
@@ -266,8 +265,8 @@ static int doit(pam_handle_t * pamh)
 	if(ret == PAM_SUCCESS)
 		password = ptr;
 
-	/* continue with other pam modules if user exists and is not the guest user */
-	if (user && strcmp(user, guestuser) && getpwnam(user))
+	/* continue with other pam modules if user exists */
+	if (user && getpwnam(user))
 	{
 		syslog(LOG_WARNING, "ignoring %s", user);
 		return PAM_IGNORE;
@@ -321,7 +320,7 @@ static int doit(pam_handle_t * pamh)
 
 		// do both passwords match?
 		if ((password && strcmp(password, resp[0].resp))
-		|| (!password && strcmp(resp[0].resp, resp[1].resp)))
+				|| (!password && strcmp(resp[0].resp, resp[1].resp)))
 		{
 			syslog(LOG_ERR, "passwords don't match");
 			ret = PAM_AUTH_ERR;
@@ -337,9 +336,8 @@ static int doit(pam_handle_t * pamh)
 			if (len < 2)
 			{
 				syslog(LOG_WARNING, "user name too short");
-				strcpy(username, guestuser);
 			}
-			
+
 			{
 				int cnt = 0;
 				int pos = strlen(username);
@@ -350,7 +348,7 @@ static int doit(pam_handle_t * pamh)
 						ret = PAM_AUTH_ERR;
 						goto out_free;
 					}
-					if (!getpwnam(username) && strcmp(username, guestuser))
+					if (!getpwnam(username))
 						break;
 					syslog(LOG_WARNING, "user %s exists, retry", username);
 					snprintf(username+pos, 3, "%02d", cnt);
