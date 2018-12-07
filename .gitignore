@@ -1,0 +1,5 @@
+.deps/
+.libs/
+Makefile*
+README
+pam_useradd.*
